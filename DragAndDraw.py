@@ -17,9 +17,9 @@ class DragAndDraw(QMainWindow):
         self.disposition_principale = QGridLayout()
         self.disposition_principale.addWidget(self.libelle_container, 0, 0)
         self.panel_objets = QGridLayout()
-        self.label_pente = DragItem("Pente")
+        self.label_pente = DragItemPente()
         self.panel_objets.addWidget(self.label_pente, 0, 0)
-        self.label_balle = DragItem("Balle")
+        self.label_balle = DragItemBalle()
         self.panel_objets.addWidget(self.label_balle, 1, 0)
         self.disposition_principale.addLayout(self.panel_objets, 0, 1)
         self.central_widget.setLayout(self.disposition_principale)
@@ -34,6 +34,8 @@ class DragAndDraw(QMainWindow):
         self.libelle_container.setPixmap(self.simulation.canvas.pixmap())
 
 
+# L'endroit où les objets sont déposés / dessinés
+# Il faudrait refactoré le code pour éviter de passer la fenêtre principale en argument
 class Canvas(QLabel):
     def __init__(self, *args, **kwargs):
         self.fenetre_principale = kwargs.pop("fenetre_principale")
@@ -41,6 +43,7 @@ class Canvas(QLabel):
         self.setFixedSize(800, 800)
         self.setAcceptDrops(True)
 
+    # Est appelé lorsque l'objet entre dans la zone de drop
     def dragEnterEvent(self, event, /):
         print("dragEnterEvent: canvas")
         event.accept()
@@ -49,27 +52,34 @@ class Canvas(QLabel):
         print("dragLeaveEvent: canvas")
         event.accept()
 
+    # Est appelé lorsque l'objet est déposé
     def dropEvent(self, event, /):
+        # On sait que le widget est un DragItem
         widget = event.source()
-        print("Drop Event: ", widget.text())
+        print("Drop Event: ", widget.type_item)
+        # La position du drop est en relation avec la fenêtre, voir différences entre position(), pos(), globalPos() et
+        # localPos() pour utiliser le bon
         position_x = int(event.position().x())
         position_y = int(event.position().y())
         print("Drop Position: ", position_x, position_y)
-        if widget.text() == "Pente":
+        # type_item est un attribut ajouté à DragItem pour identifier le type d'objet
+        if widget.type_item == "Pente":
             self.fenetre_principale.simulation.objets.append(Pente(position_x, position_y, 45))
-        elif widget.text() == "Balle":
+        elif widget.type_item == "Balle":
             self.fenetre_principale.simulation.objets.append(Balle(position_x, position_y, 25))
 
 
+# Classe parente pour les objets à déplacer
 class DragItem(QLabel):
-    def __init__(self, type_item, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setContentsMargins(25, 5, 25, 5)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setStyleSheet("border: 1px solid black;")
         self.setGeometry(0, 0, 100, 50)
         self.setFixedSize(100, 50)
-        self.setText(type_item)
+        self.setText("")
+        self.type_item = None
 
     def mouseMoveEvent(self, ev, /):
         if ev.buttons() == Qt.MouseButton.LeftButton:
@@ -82,6 +92,22 @@ class DragItem(QLabel):
 
             drag.exec(Qt.DropAction.MoveAction)
             self.show()
+
+
+class DragItemPente(DragItem):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.type_item = "Pente"
+        self.setText("Pente")
+
+
+class DragItemBalle(DragItem):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.type_item = "Balle"
+        self.setText("Balle")
+
+
 
 
 class Simulation:
