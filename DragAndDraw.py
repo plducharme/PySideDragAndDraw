@@ -108,8 +108,6 @@ class DragItemBalle(DragItem):
         self.setText("Balle")
 
 
-
-
 class Simulation:
     def __init__(self, canvas):
         self.canvas = canvas
